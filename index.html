@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PINEAPPLE MYSTERY</title>
+
+<style>
+:root {
+  --bg:#050505;
+  --red:#FF1801;
+  --blue:#3712FF;
+  --green:#1BD51A;
+  --accent:#f4d03f;
+  --bberry:#4facfe;
+}
+
+body {
+  margin:0;
+  background:var(--bg);
+  color:#e0e0e0;
+  font-family:Courier New, monospace;
+  text-align:center;
+}
+
+body.kiwi { --accent:#00ff00; }
+body.blueberry { --accent:var(--bberry); }
+body.equinox { background:#111; }
+
+.card {
+  display:none;
+  max-width:380px;
+  margin:auto;
+  background:#111;
+  border:1px solid #333;
+  border-radius:16px;
+  padding:30px;
+}
+
+.btn {
+  width:100%;
+  padding:15px;
+  margin-top:10px;
+  background:#000;
+  color:#fff;
+  border:1px solid #333;
+  font-weight:bold;
+  cursor:pointer;
+}
+
+#role { font-size:42px; font-weight:900; }
+#skill { font-size:26px; margin:10px 0; }
+</style>
+</head>
+
+<body>
+
+<div class="card" id="menu" style="display:block">
+  <h1 style="color:var(--accent)">PINEAPPLE</h1>
+  <div>PLAYER <input id="count" type="number" value="6" min="4" max="20"></div>
+  <button class="btn" onclick="boot()">START</button>
+  <div id="admin" style="display:none;margin-top:15px">
+    TYPE:
+    <select id="forceType">
+      <option value="RANDOM">RANDOM</option>
+      <option value="Standard">Standard</option>
+      <option value="Chillsear">Chillsear</option>
+      <option value="Zombie">Zombie</option>
+      <option value="Eden">Eden</option>
+    </select>
+  </div>
+  <div onclick="admin()" style="font-size:10px;color:#222;margin-top:20px">[ADMIN]</div>
+</div>
+
+<div class="card" id="draw">
+  <div id="pLabel">PLAYER 1</div>
+  <button class="btn" style="background:var(--red)" onclick="reveal()">ACCESS</button>
+</div>
+
+<div class="card" id="result" style="background:#fff;color:#000">
+  <div id="role"></div>
+  <div id="skill"></div>
+  <div id="desc"></div>
+  <button class="btn" onclick="next()">CONFIRM</button>
+</div>
+
+<div class="card" id="final">
+  <div id="finalType"></div>
+  <button class="btn" onclick="location.reload()">REBOOT</button>
+</div>
+
+<script>
+const skills = {
+  머더:[
+    {n:"방탄",d:"한 번 공격을 버팀"},
+    {n:"가방",d:"죽은 척 연출"},
+    {n:"총잡이",d:"보안관 방식"}
+  ],
+  보안관:[{n:"강인한",d:"목숨 2개"}],
+  의사:[{n:"자가치유",d:"1회"}],
+  시민:[
+    {n:"스파이",d:"시민 처치 시 강화"},
+    {n:"퍼블win",d:"첫 희생 시 즉시 승리"},
+    {n:"패링",d:"1회 방어"}
+  ]
+};
+
+const murderTypes = [
+  {n:"Standard",w:60,d:"기본"},
+  {n:"Chillsear",w:20,d:"치료 불가"},
+  {n:"Zombie",w:10,d:"감염"},
+  {n:"Eden",w:10,d:"보스"}
+];
+
+let players=[], cur=0, mType;
+
+function admin(){
+  const pw=prompt("CODE");
+  if(pw==="1441"){
+    document.body.classList.add("blueberry");
+    document.getElementById("admin").style.display="block";
+    document.getElementById("forceType").innerHTML+=
+      `<option value="Crying Devil">Crying Devil</option>`;
+  }
+  if(pw==="9245"){
+    document.body.classList.add("kiwi");
+    document.getElementById("admin").style.display="block";
+  }
+  if(pw==="619"){
+    document.body.className="equinox";
+    document.getElementById("menu").innerHTML="<h2>EQUINOX</h2>";
+  }
+}
+
+function weightedPick(){
+  let pool=[];
+  murderTypes.forEach(t=>{for(let i=0;i<t.w;i++) pool.push(t)});
+  return pool[Math.floor(Math.random()*pool.length)];
+}
+
+function boot(){
+  const n=+document.getElementById("count").value;
+  players=[];
+  cur=0;
+
+  const f=document.getElementById("forceType").value;
+  if(f==="Crying Devil"){
+    mType={n:"Crying Devil",d:"블루베리 전용"};
+  }else if(f!=="RANDOM"){
+    mType=murderTypes.find(t=>t.n===f);
+  }else{
+    mType=weightedPick();
+  }
+
+  let roles=["머더"];
+  while(roles.length<n) roles.push("시민");
+
+  roles.sort(()=>Math.random()-0.5);
+
+  players=roles.map(r=>{
+    if(r==="머더") return {r,s:skills.머더[Math.floor(Math.random()*3)]};
+    return {r,s:(skills[r]||[{n:"무능력",d:""}])[0]};
+  });
+
+  show("draw");
+}
+
+function reveal(){
+  const p=players[cur];
+  document.getElementById("role").innerText=p.r;
+  document.getElementById("role").style.color=
+    p.r==="머더"?"var(--red)":p.r==="보안관"?"var(--blue)":"var(--green)";
+  document.getElementById("skill").innerText=p.s.n;
+  document.getElementById("desc").innerText=p.s.d;
+  show("result");
+}
+
+function next(){
+  cur++;
+  if(cur>=players.length){
+    document.getElementById("finalType").innerText=mType.n;
+    show("final");
+  }else{
+    document.getElementById("pLabel").innerText="PLAYER "+(cur+1);
+    show("draw");
+  }
+}
+
+function show(id){
+  document.querySelectorAll(".card").forEach(c=>c.style.display="none");
+  document.getElementById(id).style.display="block";
+}
+</script>
+</body>
+</html>
